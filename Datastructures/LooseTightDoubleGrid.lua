@@ -2,6 +2,10 @@ local function clamp(v,lower,upper)
     return math.min(upper,math.max(lower,v))
 end
 
+local function sleep(n)
+    os.execute("sleep " .. tonumber(n))
+end
+
 local function CheckCollision(x1,y1,w1,h1, x2,y2,w2,h2)
     return x1 < w2 and
            x2 < w1 and
@@ -38,7 +42,7 @@ function LooseCell.new(l,r,t,b)
         t = y,
         b = y 
     }, LooseCell)
-    print(l,r,t,b)
+    --print(l,r,t,b)
     return self
 end
 
@@ -52,7 +56,11 @@ function LooseCell:Insert(entity)
     self.head = container;
 end
 
-function LooseCell:UpdateExtents()
+function LooseCell:UpdateExtents(grid, idx)
+    -- store the current extents for comparison
+    local old_l,old_r,old_t,old_b = grid:GetCol(self.l),grid:GetCol(self.r),grid:GetRow(self.t),grid:GetRow(self.b);
+
+    -- setup vars and check the head
     local n = self.head
     local v = n.value
     local l,r,t,b = v:AABB();
@@ -61,15 +69,85 @@ function LooseCell:UpdateExtents()
     self.t = t;--self.y;
     self.b = b;--self.y;
     n = n.next;
+    -- iterate through the rest of the entities
     while n do
         local v = n.value
         local l,r,t,b = v:AABB();
-        --print(l,self.l)
         self.l = math.min(l,self.l);
         self.r = math.max(r,self.r);
         self.t = math.min(t,self.t);
         self.b = math.max(b,self.b);
         n = n.next
+    end
+    local l,r,t,b = grid:GetCol(self.l),grid:GetCol(self.r),grid:GetRow(self.t),grid:GetRow(self.b);
+
+    if old_l ~= l then
+        if old_l < l then -- if the extents has shrunk from the left side (remove)
+            for y = math.max(old_t,t), math.min(old_b,b) do
+                for x = old_l, l-1 do
+                    --print("l_r: ",x,y)
+                    grid.TightGrid[(y-1)*grid.tCols+x]:Remove(idx)
+                end
+            end
+        elseif old_l > l then -- otherwise it has grown (add)
+            for y = math.max(old_t,t), math.min(old_b,b) do
+                for x = l, old_l-1 do
+                    --print("l_a: ",x,y)
+                    grid.TightGrid[(y-1)*grid.tCols+x]:Insert(idx)
+                end
+            end
+        end
+    end
+    if old_r ~= r then
+        if old_r > r then -- if the extents has shrunk from the right side (remove)
+            for y = math.max(old_t,t), math.min(old_b,b) do
+                for x = r+1, old_r do
+                    --print("r_r: ",x,y)
+                    grid.TightGrid[(y-1)*grid.tCols+x]:Remove(idx)
+                end
+            end
+        elseif old_r < r then -- otherwise it has grown (add)
+            for y = math.max(old_t,t), math.min(old_b,b) do
+                for x = old_r+1, r do
+                    --print("r_a: ",x,y)
+                    grid.TightGrid[(y-1)*grid.tCols+x]:Insert(idx)
+                end
+            end
+        end
+    end
+    if old_t ~= t then
+        if old_t < t then -- if the extents has shrunk from the top side (remove)
+            for y = old_t, t-1 do
+                for x = old_l, old_r do
+                    --print("t_r: ",x,y)
+                    grid.TightGrid[(y-1)*grid.tCols+x]:Remove(idx)
+                end
+            end
+        elseif old_t > t then -- otherwise it has grown (add)
+            for y = t, old_t-1 do
+                for x = l, r do
+                    --print("t_a: ",x,y)
+                    grid.TightGrid[(y-1)*grid.tCols+x]:Insert(idx)
+                end
+            end
+        end
+    end
+    if old_b ~= b then
+        if old_b > b then -- if the extents has shrunk from the bottom side (remove)
+            for y = b+1, old_b do
+                for x = old_l, old_r do
+                    --print("b_r: ",x,y)
+                    grid.TightGrid[(y-1)*grid.tCols+x]:Remove(idx)
+                end
+            end
+        elseif old_b < b then -- otherwise it has grown (add)
+            for y = old_b+1, b do
+                for x = l, r do
+                    --print("b_a: ",x,y)
+                    grid.TightGrid[(y-1)*grid.tCols+x]:Insert(idx)
+                end
+            end
+        end
     end
 end
 
@@ -77,16 +155,18 @@ function LooseCell:Remove(entity)
     local n = self.head
     if entity == n.value then
         self.head = n.next
-        self.l = self.x;
-        self.r = self.x;
-        self.t = self.y;
-        self.b = self.y;
+        if not self.head then
+            self.l = self.x;
+            self.r = self.x;
+            self.t = self.y;
+            self.b = self.y;
+        end
     else
         local nn = n.next
         while nn do
             if nn.value == entity then
                 n.next = nn.next
-                break
+                return
             end
             n = nn
             nn = nn.next
@@ -106,6 +186,28 @@ function TightCell.new(idx)
         head = Node.new(idx) -- stores the index to the first loose cell node in the tight cell using an index SLL
     }, TightCell)
     return self
+end
+
+function TightCell:Remove(idx)
+    local n = self.head
+    if idx == n.value then
+        self.head = n.next;
+    else
+        local nn = n.next
+        while nn do
+            if nn.value == idx then
+                n.next = nn.next;
+                return
+            end
+            n = nn;
+            nn = nn.next;
+        end
+    end
+end
+
+function TightCell:Insert(idx)
+    local n = Node.new(idx, self.head);
+    self.head = n;
 end
 
 
@@ -137,6 +239,13 @@ function LTDG.new(width, height, cellWidth, cellHeight)
     return self
 end
 
+function LTDG:GetRow(x)
+    return clamp(math.ceil(x/self.cHeight), 1, self.tRows); --  -1)*self.tCols;
+end
+function LTDG:GetCol(x)
+    return clamp(math.ceil(x/self.cWidth), 1, self.tCols);
+end
+
 function LTDG:Draw()
     for y = 0, self.tRows-1 do
         for x = 0, self.tCols-1 do
@@ -145,11 +254,12 @@ function LTDG:Draw()
             love.graphics.rectangle("line", x*self.cWidth, y*self.cHeight, self.cWidth, self.cHeight);
             -- Loose Cells
             --print((y)*self.tCols+x+1)
-            local cell = self.LooseGrid[(y)*self.tCols+x+1]
+            local idx = (y)*self.tCols+x+1
+            local cell = self.LooseGrid[idx]
             --love.graphics.setColor(0,0,255,1);
             if cell.head then
                 love.graphics.setColor(255,0,0,1);
-                cell:UpdateExtents()
+                cell:UpdateExtents(self, idx);
             end
             local w = cell.r-cell.l;
             local h = cell.b-cell.t;
@@ -167,25 +277,12 @@ function LTDG:Insert(entity)
             self.LooseGrid[entity.lastCell]:Remove(entity)
         end
         -- insert element to cell at 'index' and expand the loose cell's AABoundingBox
-        print(cX,cY,index)
+        --print(cX,cY,index)
         entity.lastCell = index
         self.LooseGrid[index]:Insert(entity);
     end
 end
 
-function LTDG:SearchTightGrid(x1,x2,y1,y2)
-    local tx1 = clamp(math.ceil(x1/self.cWidth), 1, self.tCols);
-    local tx2 = clamp(math.ceil(x2/self.cWidth), 1, self.tCols);
-    local ty1 = clamp(math.ceil(y1/self.cHeight), 1, self.tRows);
-    local ty2 = clamp(math.ceil(y2/self.cHeight), 1, self.tRows);
-
-    for ty = ty1, ty2 do
-        local trow = (ty-1)*self.tCols;
-        for tx = tx1, tx2 do
-            local tightCell = self.TightGrid[trow + tx];
-        end
-    end
-end
 
 function LTDG:SearchBox(search)
     local x1,x2,y1,y2 = search:AABB()

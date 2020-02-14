@@ -30,6 +30,7 @@ function Entity:Move(dx,dy)
 end
 
 function Entity:IntersectsRadius(entity)
+    if self == entity then return false end
     if math.sqrt((entity.x-self.x)^2+(entity.y-self.y)^2) <= self.width/2+entity.width/2 then
         self.intersecting = true;
         entity.intersecting = true;
