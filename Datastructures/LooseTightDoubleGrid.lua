@@ -270,8 +270,8 @@ function LTDG:Draw()
 end
 
 function LTDG:Insert(entity)
-    local cX = clamp(math.ceil(entity.pos.x/self.cWidth), 1, self.tCols)
-    local cY = clamp(math.ceil(entity.pos.y/self.cHeight), 1, self.tRows)
+    local cX = self:GetCol(entity.pos.x)
+    local cY = self:GetRow(entity.pos.y)
     local index = (cY-1)*self.tCols + cX; -- double check this later
     if entity.lastCell ~= index then
         if entity.lastCell then
@@ -280,6 +280,7 @@ function LTDG:Insert(entity)
         -- insert element to cell at 'index' and expand the loose cell's AABoundingBox
         --print(cX,cY,index)
         entity.lastCell = index
+        --print("index:",index)
         self.LooseGrid[index]:Insert(entity);
     end
 end
