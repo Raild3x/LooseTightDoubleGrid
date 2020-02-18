@@ -11,7 +11,7 @@ local grid = LTDG.new(nodesPerLine,nodesPerLine,windowWidth/nodesPerLine,windowW
 local plr = Entity.new(88, 94, 20, 20)
 grid:Insert(plr);
 local boids = {plr}
-for i = 2, 5000 do
+for i = 2, 500 do
     local d = math.floor(math.random()*100+1)
     local b = Entity.new(math.floor(math.random()*800), math.floor(math.random()*800), d, d);
     print(b.x,b.y,d)
