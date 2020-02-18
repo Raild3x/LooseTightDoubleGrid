@@ -33,7 +33,7 @@ function LooseCell.new(l,r,t,b)
     local y = (b-t)/2+t
     local self = setmetatable({
         head, -- LL of entities(node) in the loose cell
-        
+        marked = false,
         x = x,
         y = y,
         -- bounding box extents from TR corner
@@ -54,6 +54,7 @@ end
 function LooseCell:Insert(entity)
     local container = Node.new(entity, self.head);
     self.head = container;
+    self.marked = true; -- test property for increasing efficiency
 end
 
 function LooseCell:UpdateExtents(grid, idx)
@@ -258,13 +259,14 @@ function LTDG:Draw()
             -- Loose Cells
             local idx = (y)*self.tCols+x+1;
             local cell = self.LooseGrid[idx];
-            if cell.head then
+            if cell.marked then
+                cell.marked = false
                 --love.graphics.setColor(255,0,0,1);
                 cell:UpdateExtents(self, idx);
             end
-            local w = cell.r-cell.l;
+            --[[local w = cell.r-cell.l;
             local h = cell.b-cell.t;
-            --love.graphics.rectangle("line", cell.l, cell.t, w, h);
+            love.graphics.rectangle("line", cell.l, cell.t, w, h);]]
         end
     end
 end

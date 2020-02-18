@@ -33,7 +33,7 @@ end
 
 function Entity:IntersectsRadius(entity)
     if self == entity then return false end
-    if Vector2.Magnitude(entity.pos-self.pos) <= self.width/2+entity.width/2 then
+    if Vector2.Magnitude(entity.pos-self.pos) < self.width/2+entity.width/2 then
         self.intersecting = true;
         entity.intersecting = true;
         return true
