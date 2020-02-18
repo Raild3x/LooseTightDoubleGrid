@@ -239,13 +239,16 @@ function LTDG.new(width, height, cellWidth, cellHeight)
     return self
 end
 
+-- Gets the row from a given x coordinate
 function LTDG:GetRow(x)
     return clamp(math.ceil(x/self.cHeight), 1, self.tRows); --  -1)*self.tCols;
 end
+-- Gets the col from a given x coordinate
 function LTDG:GetCol(x)
     return clamp(math.ceil(x/self.cWidth), 1, self.tCols);
 end
 
+-- Test method for rendering the AABBs
 function LTDG:Draw()
     for y = 0, self.tRows-1 do
         for x = 0, self.tCols-1 do
@@ -253,24 +256,22 @@ function LTDG:Draw()
             love.graphics.setColor(255,255,255, .4);
             love.graphics.rectangle("line", x*self.cWidth, y*self.cHeight, self.cWidth, self.cHeight);
             -- Loose Cells
-            --print((y)*self.tCols+x+1)
-            local idx = (y)*self.tCols+x+1
-            local cell = self.LooseGrid[idx]
-            --love.graphics.setColor(0,0,255,1);
+            local idx = (y)*self.tCols+x+1;
+            local cell = self.LooseGrid[idx];
             if cell.head then
-                love.graphics.setColor(255,0,0,1);
+                --love.graphics.setColor(255,0,0,1);
                 cell:UpdateExtents(self, idx);
             end
             local w = cell.r-cell.l;
             local h = cell.b-cell.t;
-            love.graphics.rectangle("line", cell.l, cell.t, w, h);
+            --love.graphics.rectangle("line", cell.l, cell.t, w, h);
         end
     end
 end
 
 function LTDG:Insert(entity)
-    local cX = clamp(math.ceil(entity.x/self.cWidth), 1, self.tCols)
-    local cY = clamp(math.ceil(entity.y/self.cHeight), 1, self.tRows)
+    local cX = self:GetCol(entity.pos.x)
+    local cY = self:GetRow(entity.pos.y)
     local index = (cY-1)*self.tCols + cX; -- double check this later
     if entity.lastCell ~= index then
         if entity.lastCell then
@@ -279,6 +280,7 @@ function LTDG:Insert(entity)
         -- insert element to cell at 'index' and expand the loose cell's AABoundingBox
         --print(cX,cY,index)
         entity.lastCell = index
+        --print("index:",index)
         self.LooseGrid[index]:Insert(entity);
     end
 end
@@ -298,14 +300,14 @@ function LTDG:SearchBox(search)
         for tx = tx1, tx2 do
             local tightCell = self.TightGrid[trow + tx];
 
-            love.graphics.setColor(255,255,255,1)
+            --love.graphics.setColor(255,255,255,1)
 
             local looseNode = tightCell.head;
             while looseNode do -- for each looseCell in tightCell
-                love.graphics.setColor(0,0,255,1)
+                --love.graphics.setColor(0,0,255,1)
                 local looseCell = self.LooseGrid[looseNode.value];
                 if looseCell:Intersects(x1,x2,y1,y2) then -- if looseCell intersects search area
-                    love.graphics.setColor(255,0,255,1)
+                    --love.graphics.setColor(255,0,255,1)
                     local entity = looseCell.head;
                     while entity do -- for each entity in loose cell
                         if entity.value:IntersectsRadius(search) then --if entity.value:Intersects(x1,y1,x2,y2) then -- if entity intersects search area
@@ -316,7 +318,7 @@ function LTDG:SearchBox(search)
                 end
                 looseNode = looseNode.next;
             end
-            love.graphics.circle("fill", tx*self.cWidth-self.cWidth/2, ty*self.cWidth-self.cWidth/2, 4)
+            --love.graphics.circle("fill", tx*self.cWidth-self.cWidth/2, ty*self.cWidth-self.cWidth/2, 4)
         end
     end
     return intersectingEntities;
