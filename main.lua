@@ -8,12 +8,12 @@ local nodesPerLine = 10
 love.window.setMode(windowWidth, windowWidth)
 local grid = LTDG.new(nodesPerLine,nodesPerLine,windowWidth/nodesPerLine,windowWidth/nodesPerLine)
 
-local size = 45
+local size = 40
 local plr = Entity.new(88, 94, size, size)
 grid:Insert(plr);
 local boids = {plr}
 for i = 2, 2000 do
-    local d = math.floor(math.random()*20+1); -- diameter
+    local d = math.floor(math.random()*10+1); -- diameter
     local b = Entity.new(math.floor(math.random()*(windowWidth-100)+50), math.floor(math.random()*(windowWidth-100)+50), d, d);
     print(b.x,b.y,d)
     table.insert(boids, b);
